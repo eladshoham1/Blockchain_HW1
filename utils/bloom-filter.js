@@ -10,3 +10,14 @@ filter.add('bob')
 // lookup for some data
 console.log(filter.has('bob')) // output: true
 console.log(filter.has('daniel')) // output: false
+
+// now use it like a classic bloom filter!
+// ...
+
+// alternatively, create a PartitionedBloomFilter optimal for a number of items and a desired error rate
+const items = ['alice', 'bob']
+const errorRate = 0.04 // 4 % error rate
+filter = PartitionedBloomFilter.create(items.length, errorRate)
+
+// or create a PartitionedBloomFilter optimal for a collections of items and a desired error rate
+filter = PartitionedBloomFilter.from(items, errorRate)

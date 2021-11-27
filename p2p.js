@@ -4,7 +4,7 @@ const {
     Blockchain,
     Transaction
 } = require('./utils/blockchain.js');
-const { Wallet } = require('./utils/key-generator.js');
+const { Wallet } = require('./utils/wallet.js');
 
 const { me, peers } = extractPeersAndMyPort();
 const sockets = {};
