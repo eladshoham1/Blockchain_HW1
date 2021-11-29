@@ -1,6 +1,9 @@
 const SHA256 = require("crypto-js/sha256");
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
+const { MerkleTree } = require('merkletreejs');
+const { PartitionedBloomFilter } = require('bloom-filters');
+const { ERROR_RATE, DIFFICULTY, MINING_REWARD } = require('./constants');
 
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
@@ -39,14 +42,16 @@ class Block {
     constructor(timestamp, transactions, previousHash = '') {
         this.previousHash = previousHash;
         this.timestamp = timestamp;
-        this.transactions = transactions
+        this.transactions = transactions;
+        this.merkleTree = new MerkleTree(this.transactions.map(x => SHA256(x)), SHA256);
+        this.merkleRoot = this.merkleTree.getRoot().toString('hex');
+        this.bloomfilter = PartitionedBloomFilter.from(this.transactions.map(x => SHA256(x)), ERROR_RATE);
         this.hash = this.calculateHash();
         this.nonce = 0;
     }
 
     calculateHash() {
-        return SHA256(this.previousHash + this.timestamp +
-            JSON.stringify(this.transactions) + this.nonce).toString();
+        return SHA256(this.previousHash + this.timestamp + this.merkleRoot + this.nonce).toString();
     }
 
     mineBlock(difficulty) {
@@ -58,9 +63,18 @@ class Block {
         console.log("Block mined" + this.hash);
     }
 
+    hasTransaction(transaction) {
+        if (this.bloomfilter.has(transaction)) {
+            const proof = this.merkleTree.getProof(SHA256(transaction));
+            return tree.verify(proof, leaf, root);
+        }
+
+        return false;
+    }
+
     hasValidTransactions() {
-        for (const tx of this.transactions) {
-            if (!tx.isValid())
+        for (const transaction of this.transactions) {
+            if (!transaction.isValid())
                 return false;
         }
 
@@ -71,13 +85,13 @@ class Block {
 class Blockchain {
     constructor() {
         this.chain = [this.createGenesisBlock()];
-        this.difficulty = 4;
+        this.difficulty = DIFFICULTY;
         this.pendingTransactions = [];
-        this.miningReward = 10;
+        this.miningReward = MINING_REWARD;
     }
 
     createGenesisBlock() {
-        return new Block("01/01/2019", "Genesis block", "0");
+        return new Block("01/01/2019", [], "0");
     }
 
     getLatestBlock() {
@@ -85,7 +99,7 @@ class Blockchain {
     }
 
     minePendingTransaction(miningRewardAddress) {
-        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
+        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward - this.chain.length); // to change !!!!!!!!!!!!!!!
         this.pendingTransactions.push(rewardTx);
         let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
         block.mineBlock(this.difficulty);

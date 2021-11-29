@@ -1,10 +1,12 @@
 const topology = require('fully-connected-topology');
+const fs = require('fs');
 const { stdin, exit, argv } = process;
 const {
     Blockchain,
     Transaction
 } = require('./utils/blockchain.js');
 const { Wallet } = require('./utils/wallet.js');
+const { MAX_INTERVAL_TIME, MIN_INTERVAL_TIME } = require('./utils/constants');
 
 const { me, peers } = extractPeersAndMyPort();
 const sockets = {};
@@ -12,14 +14,13 @@ const myIp = toLocalIp(me);
 const peerIps = getPeerIps(peers);
 const coin = new Blockchain();
 
-const MAX_INTERVAL_TIME = 10000;
-const MIN_INTERVAL_TIME = 5000;
-
 console.log('---------------------');
 console.log('Welcome to p2p blockchain!');
 console.log('me - ', me);
 console.log('peers - ', peers);
 console.log('connecting to peers...');
+
+let transactions = [];
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
@@ -35,8 +36,19 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         coin.minePendingTransaction(wallet.publicKey);
         console.log(`Balance of ${peerPort} is ${coin.getBalanceOfAddress(wallet.publicKey)}`);
         console.log(`Blockchain valid? ${coin.isChainValid() ? 'yes' : 'no'}`);
-        //JSON.stringify(coin, null, 4);
+        transactions.push(tx1);
+
+        if (transactions.length == 30) {
+            fs.writeFile('./transactions.js', JSON.stringify(transactions, null, 4), err => {
+                console.log(err ? err : 'Updated!');
+                exit(0);
+            });
+        }
     }, INTERVAL_TIME);
+
+
+    
+
 
     /*sockets[peerPort] = socket;
     stdin.on('data', data => { //on user input
