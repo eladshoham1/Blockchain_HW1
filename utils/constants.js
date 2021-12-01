@@ -1,3 +1,4 @@
+const FULL_NODES_PEER = '4001';
 const MEM_POOL_FILE = 'mem-pool.js';
 const ERROR_RATE = 0.04;
 const DIFFICULTY = 4;
@@ -8,6 +9,7 @@ const MAX_INTERVAL_TIME = 1000;
 const MIN_INTERVAL_TIME = 500;
 
 module.exports = {
+    FULL_NODES_PEER,
     MEM_POOL_FILE,
     ERROR_RATE,
     DIFFICULTY, 

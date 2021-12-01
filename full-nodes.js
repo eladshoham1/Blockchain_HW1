@@ -5,22 +5,45 @@ const {
     Blockchain,
     Transaction
 } = require('./utils/blockchain.js');
-const { MEM_POOL_FILE } = require('./utils/constants');
+const { MEM_POOL_FILE, MIN_INTERVAL_TIME, MAX_INTERVAL_TIME } = require('./utils/constants');
 
 const { me, peers } = extractPeersAndMyPort();
 const sockets = {};
 const myIp = toLocalIp(me);
 const peerIps = getPeerIps(peers);
 const blockchain = new Blockchain();
+const INTERVAL_TIME = Math.floor(Math.random() * (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME)) + MIN_INTERVAL_TIME;
 let memPool = [];
-
+let transactionNumber = 0;
 fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
     if (err) {
         console.log(err);
         return;
     }
     memPool = JSON.parse(data);
+    //console.log(memPool)
 });
+
+let wallet;
+let transaction;
+
+setInterval(() => {
+    wallet = new Wallet();
+    transaction = new Transaction(memPool[transactionNumber].fromAddress, memPool[transactionNumber].toAddress, memPool[transactionNumber].amount);
+    transaction.signTransaction(wallet.key);
+    blockchain.addTransaction(transaction);
+    blockchain.minePendingTransaction(wallet.publicKey);
+    console.log(`Balance of ${peerPort} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
+    console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
+    transactions.push(tx1);
+
+    if (transactions.length == 30) {
+        fs.writeFile('./transactions.js', JSON.stringify(transactions, null, 4), err => {
+            console.log(err ? err : 'Updated!');
+            exit(0);
+        });
+    }
+}, INTERVAL_TIME);
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {

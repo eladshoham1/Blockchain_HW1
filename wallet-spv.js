@@ -3,7 +3,7 @@ const { argv } = process;
 const fs = require('fs');
 const { Transaction, Blockchain } = require('./utils/blockchain.js');
 const { Wallet } = require('./utils/wallet.js');
-const { MEM_POOL_FILE } = require('./utils/constants');
+const { FULL_NODES_PEER, MEM_POOL_FILE } = require('./utils/constants');
 
 const { me, peers } = extractPeersAndMyPort();
 //const sockets = {};
@@ -13,16 +13,48 @@ const peerIps = getPeerIps(peers);
 
 let wallet;
 let transaction;
+let blockchain;
+let memPool = [];
+
+topology(myIp, peerIps).on('open', (peerIp) => {
+    blockchain = new Blockchain();
+    fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        memPool = JSON.parse(data);
+        console.log(memPool)
+    });
+})
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp);
-
-    wallet = new Wallet();
-    address[peerPort] = wallet.publicKey;
-    console.log(peerPort, address[peerPort]);
-    transaction = new Transaction(wallet.publicKey, address[peerPort], 7);
-    transaction.signTransaction(wallet.key);
+    //console.log(!blockchain)
+    /*if (!blockchain)
+    {
+        blockchain = new Blockchain();
+        fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
+            if (err) {
+                console.log(err);
+                return;
+            }
+            memPool = JSON.parse(data);
+            //console.log(memPool)
+        });
+    } else {*/
+        console.log(memPool[0])
+        wallet = new Wallet('12345');
+        address[peerPort] = wallet.publicKey;
+        console.log(peerPort, address[peerPort]);
+        transaction = new Transaction(wallet.publicKey, address[peerPort], 7);
+        transaction.signTransaction(wallet.key);
+        blockchain.addTransaction(transaction);
+        blockchain.minePendingTransaction(wallet.publicKey);
+        console.log(`Balance of ${peerPort} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
+        console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
+    //}
     /*blockchain.addTransaction(transaction);
     blockchain.minePendingTransaction(wallet.publicKey);
     console.log(`Balance of ${peerPort} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
