@@ -40,12 +40,14 @@ class Transaction {
 
 class Block {
     constructor(timestamp, transactions, previousHash = '') {
+        const transactionsHash = transactions.map(x => SHA256(x));
+
         this.previousHash = previousHash;
         this.timestamp = timestamp;
         this.transactions = transactions;
-        this.merkleTree = new MerkleTree(this.transactions.map(x => SHA256(x)), SHA256);
+        this.merkleTree = new MerkleTree(transactionsHash, SHA256);
         this.merkleRoot = this.merkleTree.getRoot().toString('hex');
-        this.bloomfilter = PartitionedBloomFilter.from(this.transactions.map(x => SHA256(x)), ERROR_RATE);
+        this.bloomfilter = PartitionedBloomFilter.from(transactionsHash, ERROR_RATE);
         this.hash = this.calculateHash();
         this.nonce = 0;
     }
@@ -63,18 +65,25 @@ class Block {
         console.log("Block mined" + this.hash);
     }
 
-    hasTransaction(transaction) {
-        if (this.bloomfilter.has(transaction)) {
-            const proof = this.merkleTree.getProof(SHA256(transaction));
-            return tree.verify(proof, leaf, root);
-        }
+    isTransactionInMerkleTree(transaction) {
+        return this.bloomfilter.has(transaction);
+    }
 
-        return false;
+    proofOfWork(transaction) {
+        if (!this.isTransactionInMerkleTree(transaction))
+            return false;
+
+        const leaf = SHA256(transaction);
+        const proof = this.merkleTree.getProof(leaf);
+        return this.merkleTree.verify(proof, leaf, this.merkleRoot);
     }
 
     hasValidTransactions() {
         for (const transaction of this.transactions) {
             if (!transaction.isValid())
+                return false;
+
+            if (!this.proofOfWork(transaction))
                 return false;
         }
 

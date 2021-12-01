@@ -5,40 +5,30 @@ const {
     Blockchain,
     Transaction
 } = require('./utils/blockchain.js');
-const { Wallet } = require('./utils/wallet.js');
-const { MAX_INTERVAL_TIME, MIN_INTERVAL_TIME } = require('./utils/constants');
+const { MEM_POOL_FILE } = require('./utils/constants');
 
 const { me, peers } = extractPeersAndMyPort();
 const sockets = {};
 const myIp = toLocalIp(me);
 const peerIps = getPeerIps(peers);
-let coin;
-let wallet;
+const blockchain = new Blockchain();
+let memPool = [];
 
-console.log('---------------------');
-console.log('Welcome to p2p blockchain!');
-console.log('me port - ', me);
-console.log('peers - ', peers);
-console.log('connecting to peers...');
-
-let transactions = [];
+fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
+    if (err) {
+        console.log(err);
+        return;
+    }
+    memPool = JSON.parse(data);
+});
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp);
-    console.log('connected to peer -', peerPort);
-    if (me === '4001') {
-        coin = new Blockchain();
-        //console.log(coin)
-    } else {
-        wallet = new Wallet();
-        //console.log(wallet)
-    }
-
-    //if (Object.keys(sockets).length === 0)
     sockets[peerPort] = socket;
+    console.log(peerPort)
 
-    socket.on('data', data => { 
+    /*socket.on('data', data => { 
         const tx1 = new Transaction(wallet.publicKey, 'address2', 7);
         /*if (message === 'exit') { //on exit
             console.log('Bye bye');
@@ -49,9 +39,9 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
         /*if (sockets[receiverPeer]) { //message to specific peer
             if (peerPort === receiverPeer) //write only once
                 sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)));
-        } else //broadcast message to everyone*/
+        } else //broadcast message to everyone
             socket.write(tx1);
-    })
+    })*/
 
 
 
