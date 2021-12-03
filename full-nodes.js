@@ -1,113 +1,81 @@
 const topology = require('fully-connected-topology');
 const fs = require('fs');
-const { stdin, exit, argv } = process;
+const { argv, exit } = process;
 const {
     Blockchain,
     Transaction
 } = require('./utils/blockchain.js');
-const { MEM_POOL_FILE, MIN_INTERVAL_TIME, MAX_INTERVAL_TIME } = require('./utils/constants');
+const { FULL_NODES_PEER, MEM_POOL_FILE, MIN_INTERVAL_TIME, MAX_INTERVAL_TIME, EXIT_MESSAGE } = require('./utils/constants.js');
+const { Wallet } = require('./utils/wallet.js');
 
 const { me, peers } = extractPeersAndMyPort();
 const sockets = {};
+const wallets = {};
 const myIp = toLocalIp(me);
 const peerIps = getPeerIps(peers);
-const blockchain = new Blockchain();
 const INTERVAL_TIME = Math.floor(Math.random() * (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME)) + MIN_INTERVAL_TIME;
+let blockchain;
+let count = 0;
 let memPool = [];
 let transactionNumber = 0;
+let wallet;
+let transaction;
+let peer;
+
+blockchain = new Blockchain();
+
 fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
     if (err) {
         console.log(err);
         return;
     }
     memPool = JSON.parse(data);
-    //console.log(memPool)
+    wallets[me] = new Wallet(memPool[count++]['fromAddress']);
 });
 
-let wallet;
-let transaction;
-
-setInterval(() => {
-    wallet = new Wallet();
-    transaction = new Transaction(memPool[transactionNumber].fromAddress, memPool[transactionNumber].toAddress, memPool[transactionNumber].amount);
-    transaction.signTransaction(wallet.key);
-    blockchain.addTransaction(transaction);
-    blockchain.minePendingTransaction(wallet.publicKey);
-    console.log(`Balance of ${peerPort} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
-    console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
-    transactions.push(tx1);
-
-    if (transactions.length == 30) {
-        fs.writeFile('./transactions.js', JSON.stringify(transactions, null, 4), err => {
-            console.log(err ? err : 'Updated!');
-            exit(0);
-        });
-    }
-}, INTERVAL_TIME);
+if (me === FULL_NODES_PEER) {
+    setInterval(() => {
+        if (count === 3) {
+            peer = transactionNumber % 3 === 0 ? me : extractPortFromIp(peerIps[transactionNumber % 3 - 1]);
+            wallet = wallets[peer];
+            transaction = new Transaction(wallet.publicKey, memPool[transactionNumber].toAddress, Number(memPool[transactionNumber].amount));
+            try {
+                transaction.signTransaction(wallet.key);
+                blockchain.addTransaction(transaction);
+                if (peer !== me) {
+                    sockets[peer].write(`${Number(memPool[transactionNumber].amount)} coins has been sent to ${memPool[transactionNumber].toAddress}\n Balance of ${wallet.publicKey} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
+                } else {
+                    console.log(`${Number(memPool[transactionNumber].amount)} coins has been sent to ${memPool[transactionNumber].toAddress}\n Balance of ${wallet.publicKey} is ${blockchain.getBalanceOfAddress(wallet.publicKey)}`);
+                }
+            } catch(err) {
+                if (peer !== me)
+                    sockets[peer].write(err.toString());
+                else
+                    console.log(err.toString());
+            }
+            if (transactionNumber >= 3 && transactionNumber % 3 == 0) {
+                blockchain.minePendingTransaction(wallets[me].publicKey);
+                console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
+            }
+            transactionNumber++;
+            if (transactionNumber === memPool.length) {
+                Object.keys(sockets).map(socketPeer => sockets[socketPeer].write(EXIT_MESSAGE));
+                let totalCoins = 0;
+                Object.keys(wallets).map(wallet => totalCoins += blockchain.getBalanceOfAddress(wallet))
+                console.log(`Total coins: ${totalCoins}`);
+                console.log(`Total mining coins: ${blockchain.totalMiningCoins}`);
+                console.log(`Total burn coins: ${blockchain.totalBurnCoins}`);
+                exit(0);
+            }
+        }
+    }, INTERVAL_TIME);
+}
 
 //connect to peers
 topology(myIp, peerIps).on('connection', (socket, peerIp) => {
     const peerPort = extractPortFromIp(peerIp);
     sockets[peerPort] = socket;
-    console.log(peerPort)
-
-    /*socket.on('data', data => { 
-        const tx1 = new Transaction(wallet.publicKey, 'address2', 7);
-        /*if (message === 'exit') { //on exit
-            console.log('Bye bye');
-            exit(0);
-        }*/
-
-        //const receiverPeer = extractReceiverPeer(message);
-        /*if (sockets[receiverPeer]) { //message to specific peer
-            if (peerPort === receiverPeer) //write only once
-                sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)));
-        } else //broadcast message to everyone
-            socket.write(tx1);
-    })*/
-
-
-
-    //console.log(sockets)
-    //console.log(sockets);
-
-    /*const INTERVAL_TIME = Math.floor(Math.random() * (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME)) + MIN_INTERVAL_TIME;
-    setInterval(() => {
-        const wallet = new Wallet();
-        const tx1 = new Transaction(wallet.publicKey, 'address2', 7);
-        tx1.signTransaction(wallet.key);
-        coin.addTransaction(tx1);
-        coin.minePendingTransaction(wallet.publicKey);
-        console.log(`Balance of ${peerPort} is ${coin.getBalanceOfAddress(wallet.publicKey)}`);
-        console.log(`Blockchain valid? ${coin.isChainValid() ? 'yes' : 'no'}`);
-        transactions.push(tx1);
-
-        if (transactions.length == 30) {
-            fs.writeFile('./transactions.js', JSON.stringify(transactions, null, 4), err => {
-                console.log(err ? err : 'Updated!');
-                exit(0);
-            });
-        }
-    }, INTERVAL_TIME);*/
-
-    /*sockets[peerPort] = socket;
-    stdin.on('data', data => { //on user input
-        const message = data.toString().trim();
-        if (message === 'exit') { //on exit
-            console.log('Bye bye');
-            exit(0);
-        }
-
-        const receiverPeer = extractReceiverPeer(message);
-        if (sockets[receiverPeer]) { //message to specific peer
-            if (peerPort === receiverPeer) //write only once
-                sockets[receiverPeer].write(formatMessage(extractMessageToSpecificPeer(message)));
-        } else //broadcast message to everyone
-            socket.write(formatMessage(message));
-    })
-
-    //print data when received
-    socket.on('data', data => console.log(data.toString('utf8')));*/
+    wallets[peerPort] = new Wallet(memPool[count++]['fromAddress']);
 });
 
 //extract ports from process arguments, {me: first_port, peers: rest... }

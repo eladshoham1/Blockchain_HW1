@@ -3,7 +3,7 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const { MerkleTree } = require('merkletreejs');
 const { PartitionedBloomFilter } = require('bloom-filters');
-const { ERROR_RATE, DIFFICULTY, MINING_REWARD } = require('./constants');
+const { ERROR_RATE, DIFFICULTY, MINING_REWARD, INITIAL_WALLET_VALUE } = require('./constants');
 
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
@@ -62,7 +62,7 @@ class Block {
             this.hash = this.calculateHash();
         }
 
-        console.log("Block mined" + this.hash);
+        console.log("Block mined", this.hash);
     }
 
     isTransactionInMerkleTree(transaction) {
@@ -80,10 +80,7 @@ class Block {
 
     hasValidTransactions() {
         for (const transaction of this.transactions) {
-            if (!transaction.isValid())
-                return false;
-
-            if (!this.proofOfWork(transaction))
+            if (!transaction.isValid() || !this.proofOfWork(transaction))
                 return false;
         }
 
@@ -97,6 +94,8 @@ class Blockchain {
         this.difficulty = DIFFICULTY;
         this.pendingTransactions = [];
         this.miningReward = MINING_REWARD;
+        this.totalMiningCoins = 0;
+        this.totalBurnCoins = 0;
     }
 
     createGenesisBlock() {
@@ -108,17 +107,27 @@ class Blockchain {
     }
 
     minePendingTransaction(miningRewardAddress) {
-        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward); // - this.chain.length to change !!!!!!!!!!!!!!!
+        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
         this.pendingTransactions.push(rewardTx);
         let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
         block.mineBlock(this.difficulty);
+        this.setMiningCoins();
+        this.burnCoins();
         console.log('block succefully mined');
         this.chain.push(block);
         this.pendingTransactions = [];
     }
 
+    setMiningCoins() {
+        this.pendingTransactions.map(transaction => this.totalMiningCoins += transaction.amount);
+    }
+
+    burnCoins() {
+        this.totalBurnCoins += (this.chain.length + 1) * 1;
+    }
+
     getBalanceOfAddress(address) {
-        let balance = 0;
+        let balance = INITIAL_WALLET_VALUE;
 
         for (const block of this.chain) {
             for (const trans of block.transactions) {
@@ -139,6 +148,10 @@ class Blockchain {
 
         if (!transaction.isValid())
             throw new Error('Cannot add invalide transaction to cahin');
+
+        const newBalance = this.getBalanceOfAddress(transaction.fromAddress) - transaction.amount
+        if (newBalance < 0)
+            throw new Error(`${newBalance} coins are missing to complete this transaction`);
 
         this.pendingTransactions.push(transaction);
     }

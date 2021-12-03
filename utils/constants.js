@@ -1,16 +1,18 @@
 const FULL_NODES_PEER = '4001';
 const MEM_POOL_FILE = 'mem-pool.js';
+const EXIT_MESSAGE = 'exit';
 const ERROR_RATE = 0.04;
 const DIFFICULTY = 4;
 const MINING_REWARD = 10;
 const INITIAL_WALLET_VALUE = 100;
 const TRANSACTION_REWARD = 1;
-const MAX_INTERVAL_TIME = 1000;
-const MIN_INTERVAL_TIME = 500;
+const MAX_INTERVAL_TIME = 10000;
+const MIN_INTERVAL_TIME = 5000;
 
 module.exports = {
     FULL_NODES_PEER,
     MEM_POOL_FILE,
+    EXIT_MESSAGE,
     ERROR_RATE,
     DIFFICULTY, 
     MINING_REWARD, 
