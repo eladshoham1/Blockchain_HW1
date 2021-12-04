@@ -1,14 +1,26 @@
 const topology = require('fully-connected-topology');
-const { argv, exit } = process;
-const { EXIT_MESSAGE } = require('./utils/constants.js');
+const { exit } = process;
+const { extractPeersAndMyPort, toLocalIp, getPeerIps, extractPortFromIp } = require('./utils/p2p-functions.js');
+const { Wallet } = require('./utils/wallet.js');
+const { EXIT_MESSAGE, FULL_NODES_PEER } = require('./utils/constants.js');
 
 const { me, peers } = extractPeersAndMyPort();
 const myIp = toLocalIp(me);
 const peerIps = getPeerIps(peers);
+const wallet = new Wallet();
 let message;
 
+console.log('My wallet details:');
+console.log('Private Key:', wallet.privateKey);
+console.log('Public Key:', wallet.publicKey);
+
 //connect to peers
-topology(myIp, peerIps).on('connection', socket => {
+topology(myIp, peerIps).on('connection', (socket, peerIp) => {
+    const peerPort = extractPortFromIp(peerIp);
+
+    if (peerPort === FULL_NODES_PEER)
+        socket.write(JSON.stringify(wallet));
+
     socket.on('data', data => {
         message = data.toString('utf8');
         if (message === EXIT_MESSAGE) {
@@ -19,21 +31,3 @@ topology(myIp, peerIps).on('connection', socket => {
         }
     });
 });
-
-//extract ports from process arguments, {me: first_port, peers: rest... }
-function extractPeersAndMyPort() {
-    return {
-        me: argv[2],
-        peers: argv.slice(3, argv.length)
-    }
-}
-
-//'4000' -> 'localhost:4000'
-function toLocalIp(port) {
-    return `localhost:${port}`;
-}
-
-//['4000', '4001'] -> ['localhost:4000', 'localhost:4001']
-function getPeerIps(peers) {
-    return peers.map(peer => toLocalIp(peer));
-}

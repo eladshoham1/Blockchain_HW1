@@ -1,13 +1,14 @@
 const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
-//const { INITIAL_WALLET_VALUE } = require('./constants');
 
 class Wallet {
-    constructor(privateKey) {
-        this.key = ec.keyFromPrivate(privateKey);
-        this.privateKey = privateKey;
+    constructor(privateKey = '') {
+        if (privateKey === '')
+            this.key = ec.genKeyPair();
+        else
+            this.key = ec.keyFromPrivate(privateKey);
+        this.privateKey = this.key.getPrivate('hex');
         this.publicKey = this.key.getPublic('hex');
-        //this.balance = INITIAL_WALLET_VALUE;
     }
 }
 

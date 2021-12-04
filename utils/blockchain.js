@@ -90,16 +90,17 @@ class Block {
 
 class Blockchain {
     constructor() {
+        this.totalMiningCoins = 0;
+        this.totalBurnCoins = 0;
         this.chain = [this.createGenesisBlock()];
         this.difficulty = DIFFICULTY;
         this.pendingTransactions = [];
         this.miningReward = MINING_REWARD;
-        this.totalMiningCoins = 0;
-        this.totalBurnCoins = 0;
     }
 
     createGenesisBlock() {
-        return new Block("01/01/2019", [], "0");
+        this.totalBurnCoins += 1; // burn 1 coin for block number 1
+        return new Block(Date.now(), [], '0');
     }
 
     getLatestBlock() {
@@ -123,16 +124,20 @@ class Blockchain {
     }
 
     burnCoins() {
-        this.totalBurnCoins += (this.chain.length + 1) * 1;
+        const blockNumber = this.chain.length + 1;
+        this.totalBurnCoins += blockNumber;
     }
 
     getBalanceOfAddress(address) {
-        let balance = INITIAL_WALLET_VALUE;
+        let balance = INITIAL_WALLET_VALUE; // each wallet start with the same initial value
 
         for (const block of this.chain) {
             for (const trans of block.transactions) {
                 if (trans.fromAddress === address)
+                {
                     balance -= trans.amount;
+                    balance++; // reward 1 coin due to make transaction
+                }
 
                 if (trans.toAddress === address)
                     balance += trans.amount;
@@ -149,7 +154,7 @@ class Blockchain {
         if (!transaction.isValid())
             throw new Error('Cannot add invalide transaction to cahin');
 
-        const newBalance = this.getBalanceOfAddress(transaction.fromAddress) - transaction.amount
+        const newBalance = this.getBalanceOfAddress(transaction.fromAddress) - transaction.amount;
         if (newBalance < 0)
             throw new Error(`${newBalance} coins are missing to complete this transaction`);
 
