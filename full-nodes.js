@@ -45,7 +45,7 @@ setInterval(() => {
             sockets[senderPeer].write(err.toString());
         }
 
-        if (numOftransactions >= (MAX_TRANSACTIONS_IN_BLOCK - 1) && numOftransactions % (MAX_TRANSACTIONS_IN_BLOCK - 1) === 0) { // MAX_TRANSACTIONS_IN_BLOCK - 1 because of the transaction that will be add in the mining
+        if ((numOftransactions + 1) % (MAX_TRANSACTIONS_IN_BLOCK - 1) === 0) { // MAX_TRANSACTIONS_IN_BLOCK - 1 because of the transaction that will be add in the mining
             blockchain.minePendingTransaction(wallet.publicKey);
             console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
             sockets[FIRST_WALLET_SPV].write(`Balance: ${blockchain.getBalanceOfAddress(wallets[FIRST_WALLET_SPV].publicKey)}`);
@@ -55,10 +55,12 @@ setInterval(() => {
         numOftransactions++;
         if (numOftransactions === memPool.length) {
             Object.keys(sockets).map(socketPeer => sockets[socketPeer].write(EXIT_MESSAGE));
-            Object.keys(wallets).map(wallet => totalCoins += blockchain.getBalanceOfAddress(wallet.publicKey))
+            Object.keys(wallets).map(walletPeer => totalCoins += blockchain.getBalanceOfAddress(wallets[walletPeer].publicKey));
+            totalCoins += blockchain.getBalanceOfAddress(wallet.publicKey);
             console.log(`Total coins: ${totalCoins}`);
             console.log(`Total mining coins: ${blockchain.totalMiningCoins}`);
             console.log(`Total burn coins: ${blockchain.totalBurnCoins}`);
+            console.log(`Bye bye`);
             exit(0);
         }
     }

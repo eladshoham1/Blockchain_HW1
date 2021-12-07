@@ -3,14 +3,19 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const { MerkleTree } = require('merkletreejs');
 const { PartitionedBloomFilter } = require('bloom-filters');
-const { ERROR_RATE, DIFFICULTY, MINING_REWARD, INITIAL_WALLET_VALUE } = require('./constants');
+const { ERROR_RATE, DIFFICULTY, MINING_REWARD, INITIAL_WALLET_VALUE, TRANSACTION_REWARD } = require('./constants');
 
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
         this.fromAddress = fromAddress;
         this.toAddress = toAddress;
         this.amount = amount;
+        this.transactionReward = TRANSACTION_REWARD;
         this.timestamp = Date.now();
+    }
+
+    setMiner(miner) {
+        this.miner = miner;
     }
 
     calculateHash() {
@@ -99,7 +104,6 @@ class Blockchain {
     }
 
     createGenesisBlock() {
-        this.totalBurnCoins += 1; // burn 1 coin for block number 1
         return new Block(Date.now(), [], '0');
     }
 
@@ -108,23 +112,33 @@ class Blockchain {
     }
 
     minePendingTransaction(miningRewardAddress) {
-        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward);
+        const rewardTx = new Transaction(null, miningRewardAddress, this.calculateMinerReward(miningRewardAddress));
         this.pendingTransactions.push(rewardTx);
         let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
         block.mineBlock(this.difficulty);
         this.setMiningCoins();
-        this.burnCoins();
+        this.burnCoins(this.chain.length);
         console.log('block succefully mined');
         this.chain.push(block);
         this.pendingTransactions = [];
+    }
+
+    calculateMinerReward(miningRewardAddress) {
+        let minerReward = this.miningReward;
+
+        for (let i = 0; i < this.pendingTransactions.length; i++) {
+            this.pendingTransactions[i].setMiner(miningRewardAddress);
+            minerReward += this.pendingTransactions[i].transactionReward;
+        }
+
+        return minerReward;
     }
 
     setMiningCoins() {
         this.pendingTransactions.map(transaction => this.totalMiningCoins += transaction.amount);
     }
 
-    burnCoins() {
-        const blockNumber = this.chain.length + 1;
+    burnCoins(blockNumber) {
         this.totalBurnCoins += blockNumber;
     }
 
@@ -133,14 +147,16 @@ class Blockchain {
 
         for (const block of this.chain) {
             for (const trans of block.transactions) {
-                if (trans.fromAddress === address)
-                {
+                if (trans.fromAddress === address) {
                     balance -= trans.amount;
-                    balance++; // reward 1 coin due to make transaction
+                    balance -= trans.transactionReward;
                 }
 
                 if (trans.toAddress === address)
                     balance += trans.amount;
+
+                if (trans.miner === address)
+                    balance += trans.transactionReward;
             }
         }
 

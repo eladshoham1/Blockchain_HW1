@@ -23,11 +23,8 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
 
     socket.on('data', data => {
         message = data.toString('utf8');
-        if (message === EXIT_MESSAGE) {
-            console.log('Bye bye');
+        console.log(message);
+        if (message === EXIT_MESSAGE)
             exit(0);
-        } else {
-            console.log(message);
-        }
     });
 });
