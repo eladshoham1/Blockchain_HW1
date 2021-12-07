@@ -2,7 +2,7 @@ const topology = require('fully-connected-topology');
 const { exit } = process;
 const { extractPeersAndMyPort, toLocalIp, getPeerIps, extractPortFromIp } = require('./utils/p2p-functions.js');
 const { Wallet } = require('./utils/wallet.js');
-const { EXIT_MESSAGE, FULL_NODES_PEER } = require('./utils/constants.js');
+const { ERROR_MESSAGE, EXIT_MESSAGE, FULL_NODES_PEER } = require('./utils/constants.js');
 
 const { me, peers } = extractPeersAndMyPort();
 const myIp = toLocalIp(me);
@@ -23,8 +23,16 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
 
     socket.on('data', data => {
         message = data.toString('utf8');
-        console.log(message);
-        if (message === EXIT_MESSAGE)
-            exit(0);
+        if (message.toString().includes(ERROR_MESSAGE)) {
+            console.log('\x1b[41m%s\x1b[0m', extractErrorFromMessage(message));
+        } else {
+            console.log(message);
+            if (message === EXIT_MESSAGE)
+                exit(0);
+        }
     });
 });
+
+function extractErrorFromMessage(message) {
+    return message.toString().slice(ERROR_MESSAGE.length);
+}

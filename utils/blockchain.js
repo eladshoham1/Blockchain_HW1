@@ -10,16 +10,25 @@ class Transaction {
         this.fromAddress = fromAddress;
         this.toAddress = toAddress;
         this.amount = amount;
-        this.transactionReward = TRANSACTION_REWARD;
         this.timestamp = Date.now();
-    }
-
-    setMiner(miner) {
-        this.miner = miner;
+        this.transactionReward = 0;
+        this.burnCoins = 0;
     }
 
     calculateHash() {
         return SHA256(this.fromAddress + this.toAddress + this.amount + this.timestamp).toString();
+    }
+
+    setTransactionReward(transactionReward) {
+        this.transactionReward = transactionReward;
+    }
+
+    setBurnCoins(burnCoins) {
+        this.burnCoins = burnCoins;
+    }
+
+    getTotalPayment() {
+        return this.amount + this.transactionReward + this.burnCoins;
     }
 
     signTransaction(signingKey) {
@@ -95,8 +104,6 @@ class Block {
 
 class Blockchain {
     constructor() {
-        this.totalMiningCoins = 0;
-        this.totalBurnCoins = 0;
         this.chain = [this.createGenesisBlock()];
         this.difficulty = DIFFICULTY;
         this.pendingTransactions = [];
@@ -112,34 +119,15 @@ class Blockchain {
     }
 
     minePendingTransaction(miningRewardAddress) {
-        const rewardTx = new Transaction(null, miningRewardAddress, this.calculateMinerReward(miningRewardAddress));
+        let minerReward = 0;
+        this.pendingTransactions.map(trans => minerReward += trans.transactionReward);
+        const rewardTx = new Transaction(null, miningRewardAddress, this.miningReward + minerReward);
         this.pendingTransactions.push(rewardTx);
         let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
         block.mineBlock(this.difficulty);
-        this.setMiningCoins();
-        this.burnCoins(this.chain.length);
         console.log('block succefully mined');
         this.chain.push(block);
         this.pendingTransactions = [];
-    }
-
-    calculateMinerReward(miningRewardAddress) {
-        let minerReward = this.miningReward;
-
-        for (let i = 0; i < this.pendingTransactions.length; i++) {
-            this.pendingTransactions[i].setMiner(miningRewardAddress);
-            minerReward += this.pendingTransactions[i].transactionReward;
-        }
-
-        return minerReward;
-    }
-
-    setMiningCoins() {
-        this.pendingTransactions.map(transaction => this.totalMiningCoins += transaction.amount);
-    }
-
-    burnCoins(blockNumber) {
-        this.totalBurnCoins += blockNumber;
     }
 
     getBalanceOfAddress(address) {
@@ -147,18 +135,40 @@ class Blockchain {
 
         for (const block of this.chain) {
             for (const trans of block.transactions) {
-                if (trans.fromAddress === address) {
-                    balance -= trans.amount;
-                    balance -= trans.transactionReward;
-                }
+                if (trans.fromAddress === address)
+                    balance -= trans.getTotalPayment();
 
                 if (trans.toAddress === address)
                     balance += trans.amount;
-
-                if (trans.miner === address)
-                    balance += trans.transactionReward;
             }
         }
+
+        return balance;
+    }
+
+    getTotalMiningAndBurnCoins() {
+        let miningCoins = 0, burnCoins = 0;
+
+        for (const block of this.chain) {
+            for (const trans of block.transactions) {
+                miningCoins += trans.amount;
+                burnCoins += trans.burnCoins;
+            }
+        }
+
+        return { miningCoins, burnCoins };
+    }
+
+    getBalanceOfAddressIncludePending(address) {
+        let balance = this.getBalanceOfAddress(address);
+
+        this.pendingTransactions.map(trans => {
+            if (trans.fromAddress === address)
+                balance -= trans.getTotalPayment();
+
+            if (trans.toAddress === address)
+                balance += trans.amount;
+        });
 
         return balance;
     }
@@ -168,11 +178,14 @@ class Blockchain {
             throw new Error('Transaction must include from and to address');
 
         if (!transaction.isValid())
-            throw new Error('Cannot add invalide transaction to cahin');
+            throw new Error('Cannot add invalid transaction to chain');
 
-        const newBalance = this.getBalanceOfAddress(transaction.fromAddress) - transaction.amount;
-        if (newBalance < 0)
+        transaction.setBurnCoins(this.chain.length);
+        transaction.setTransactionReward(TRANSACTION_REWARD);
+        const newBalance = this.getBalanceOfAddressIncludePending(transaction.fromAddress) - transaction.getTotalPayment();
+        if (newBalance < 0) {
             throw new Error(`${newBalance} coins are missing to complete this transaction`);
+        }
 
         this.pendingTransactions.push(transaction);
     }

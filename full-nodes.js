@@ -13,14 +13,14 @@ const peerIps = getPeerIps(peers);
 const blockchain = new Blockchain();
 const INTERVAL_TIME = Math.floor(Math.random() * (MAX_INTERVAL_TIME - MIN_INTERVAL_TIME)) + MIN_INTERVAL_TIME;
 const wallets = {};
-const wallet = new Wallet();
 let memPool = [];
 let transaction;
-let totalCoins = 0;
+let totalWalletsCoins = 0;
 let numOftransactions = 0;
 let senderPeer;
 let recipientPeer;
 let amount;
+let totalCoins;
 
 fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
     if (err) {
@@ -30,13 +30,16 @@ fs.readFile(MEM_POOL_FILE, 'utf8', (err, data) => {
     memPool = JSON.parse(data);
 });
 
+wallets[me] = new Wallet();
+
 setInterval(() => {
     if (Object.keys(wallets).length >= 2) {
         senderPeer = memPool[numOftransactions].fromAddress;
         recipientPeer = memPool[numOftransactions].toAddress;
         amount = Number(memPool[numOftransactions].amount);
-        transaction = new Transaction(wallets[senderPeer].publicKey, wallets[recipientPeer].publicKey, amount);
+
         try {
+            transaction = new Transaction(wallets[senderPeer].publicKey, wallets[recipientPeer].publicKey, amount);
             transaction.signTransaction(wallets[senderPeer].key);
             blockchain.addTransaction(transaction);
             sockets[senderPeer].write(`${amount} coins has been sent to ${wallets[recipientPeer].publicKey}`);
@@ -46,7 +49,7 @@ setInterval(() => {
         }
 
         if ((numOftransactions + 1) % (MAX_TRANSACTIONS_IN_BLOCK - 1) === 0) { // MAX_TRANSACTIONS_IN_BLOCK - 1 because of the transaction that will be add in the mining
-            blockchain.minePendingTransaction(wallet.publicKey);
+            blockchain.minePendingTransaction(wallets[me].publicKey);
             console.log(`Blockchain valid? ${blockchain.isChainValid() ? 'yes' : 'no'}`);
             sockets[FIRST_WALLET_SPV].write(`Balance: ${blockchain.getBalanceOfAddress(wallets[FIRST_WALLET_SPV].publicKey)}`);
             sockets[SECOND_WALLET_SPV].write(`Balance: ${blockchain.getBalanceOfAddress(wallets[SECOND_WALLET_SPV].publicKey)}`);
@@ -55,12 +58,12 @@ setInterval(() => {
         numOftransactions++;
         if (numOftransactions === memPool.length) {
             Object.keys(sockets).map(socketPeer => sockets[socketPeer].write(EXIT_MESSAGE));
-            Object.keys(wallets).map(walletPeer => totalCoins += blockchain.getBalanceOfAddress(wallets[walletPeer].publicKey));
-            totalCoins += blockchain.getBalanceOfAddress(wallet.publicKey);
-            console.log(`Total coins: ${totalCoins}`);
-            console.log(`Total mining coins: ${blockchain.totalMiningCoins}`);
-            console.log(`Total burn coins: ${blockchain.totalBurnCoins}`);
-            console.log(`Bye bye`);
+            Object.keys(wallets).map(walletPeer => totalWalletsCoins += blockchain.getBalanceOfAddress(wallets[walletPeer].publicKey));
+            totalCoins = blockchain.getTotalMiningAndBurnCoins();
+            console.log(`Total coins: ${totalWalletsCoins}`);
+            console.log(`Total mining coins: ${totalCoins.miningCoins}`);
+            console.log(`Total burn coins: ${totalCoins.burnCoins}`);
+            console.log('Bye bye');
             exit(0);
         }
     }

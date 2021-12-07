@@ -2,82 +2,52 @@
     {
         "fromAddress": "4002",
         "toAddress": "4003",
-        "amount": "10"
+        "amount": "4"
     },
     {
         "fromAddress": "4003",
         "toAddress": "4002",
-        "amount": "15"
+        "amount": "3"
     },
     {
         "fromAddress": "4002",
         "toAddress": "4003",
-        "amount": "5"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "20"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "5"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "15"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "25"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "10"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "5"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "30"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "15"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "20"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "10"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "25"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "30"
+        "amount": "7"
     },
     {
         "fromAddress": "4003",
         "toAddress": "4002",
         "amount": "5"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "1"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "2"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "8"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "2"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "6"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "7"
     },
     {
         "fromAddress": "4002",
@@ -92,12 +62,12 @@
     {
         "fromAddress": "4002",
         "toAddress": "4003",
-        "amount": "15"
+        "amount": "3"
     },
     {
         "fromAddress": "4003",
         "toAddress": "4002",
-        "amount": "20"
+        "amount": "9"
     },
     {
         "fromAddress": "4002",
@@ -107,46 +77,76 @@
     {
         "fromAddress": "4003",
         "toAddress": "4002",
-        "amount": "10"
+        "amount": "4"
     },
     {
         "fromAddress": "4002",
         "toAddress": "4003",
-        "amount": "30"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "20"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "25"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
-        "amount": "25"
-    },
-    {
-        "fromAddress": "4002",
-        "toAddress": "4003",
-        "amount": "10"
-    },
-    {
-        "fromAddress": "4003",
-        "toAddress": "4002",
         "amount": "5"
     },
     {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "2"
+    },
+    {
         "fromAddress": "4002",
         "toAddress": "4003",
-        "amount": "15"
+        "amount": "6"
     },
     {
         "fromAddress": "4003",
         "toAddress": "4002",
-        "amount": "20"
+        "amount": "7"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "8"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "9"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "4"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "2"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "3"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "6"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "5"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "8"
+    },
+    {
+        "fromAddress": "4002",
+        "toAddress": "4003",
+        "amount": "6"
+    },
+    {
+        "fromAddress": "4003",
+        "toAddress": "4002",
+        "amount": "10"
     }
 ]
