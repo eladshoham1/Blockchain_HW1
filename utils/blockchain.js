@@ -3,7 +3,14 @@ const EC = require('elliptic').ec;
 const ec = new EC('secp256k1');
 const { MerkleTree } = require('merkletreejs');
 const { PartitionedBloomFilter } = require('bloom-filters');
-const { ERROR_RATE, DIFFICULTY, MINING_REWARD, INITIAL_WALLET_VALUE, TRANSACTION_REWARD } = require('./constants');
+const { BLOOM_FILTER_SIZE,
+    HASH_FUNCTIONS,
+    LOAD_FACTOR,
+    DIFFICULTY,
+    MINING_REWARD,
+    INITIAL_WALLET_VALUE,
+    TRANSACTION_REWARD
+} = require('./constants');
 
 class Transaction {
     constructor(fromAddress, toAddress, amount) {
@@ -54,16 +61,24 @@ class Transaction {
 
 class Block {
     constructor(timestamp, transactions, previousHash = '') {
-        const transactionsHash = transactions.map(x => SHA256(x));
-
         this.previousHash = previousHash;
         this.timestamp = timestamp;
         this.transactions = transactions;
-        this.merkleTree = new MerkleTree(transactionsHash, SHA256);
-        this.merkleRoot = this.merkleTree.getRoot().toString('hex');
-        this.bloomfilter = PartitionedBloomFilter.from(transactionsHash, ERROR_RATE);
         this.hash = this.calculateHash();
         this.nonce = 0;
+        this.setMerkleTree();
+        this.setBloomFilter();
+    }
+    
+    setMerkleTree() {
+        this.merkleTree = new MerkleTree(this.transactions.map(transaction => SHA256(transaction)), SHA256);
+        this.merkleRoot = this.merkleTree.getRoot().toString('hex');
+    }
+    
+    setBloomFilter() {
+        this.bloomfilter = new PartitionedBloomFilter(BLOOM_FILTER_SIZE, HASH_FUNCTIONS, LOAD_FACTOR);
+        for (const trans of this.transactions)
+            this.bloomfilter.add(trans.calculateHash());
     }
 
     calculateHash() {
@@ -80,7 +95,7 @@ class Block {
     }
 
     isTransactionInMerkleTree(transaction) {
-        return this.bloomfilter.has(transaction);
+        return this.bloomfilter.has(transaction.calculateHash());
     }
 
     proofOfWork(transaction) {
@@ -131,7 +146,7 @@ class Blockchain {
     }
 
     getBalanceOfAddress(address) {
-        let balance = INITIAL_WALLET_VALUE; // each wallet start with the same initial value
+        let balance = INITIAL_WALLET_VALUE;
 
         for (const block of this.chain) {
             for (const trans of block.transactions) {
@@ -183,11 +198,19 @@ class Blockchain {
         transaction.setBurnCoins(this.chain.length);
         transaction.setTransactionReward(TRANSACTION_REWARD);
         const newBalance = this.getBalanceOfAddressIncludePending(transaction.fromAddress) - transaction.getTotalPayment();
-        if (newBalance < 0) {
+        if (newBalance < 0)
             throw new Error(`${newBalance} coins are missing to complete this transaction`);
-        }
 
         this.pendingTransactions.push(transaction);
+    }
+
+    isTransactionExist(transaction) {
+        for (const block of this.chain) {
+            if (block.isTransactionInMerkleTree(transaction))
+                return true;
+        }
+
+        return false;
     }
 
     isChainValid() {

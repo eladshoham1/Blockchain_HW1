@@ -27,8 +27,9 @@ topology(myIp, peerIps).on('connection', (socket, peerIp) => {
             console.log('\x1b[41m%s\x1b[0m', extractErrorFromMessage(message));
         } else {
             console.log(message);
-            if (message === EXIT_MESSAGE)
+            if (message === EXIT_MESSAGE) {
                 exit(0);
+            }
         }
     });
 });
